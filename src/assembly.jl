@@ -20,9 +20,7 @@ function stringtree(s::String)
 	st
 end
 
-assembly(s::String) = coassembly(stringtree(s), Set([s]))
-
-function coassembly(st, ss, sc, cache)
+function assembly(st, ss, sc, cache)
 	if haskey(cache, (ss, sc))
 		cache[(ss, sc)]
 	else
@@ -34,7 +32,7 @@ function coassembly(st, ss, sc, cache)
 			scs = filter(s -> any(t -> s != t && isbelow(s, t), complex), complex)
 			scs = union(sc, scs)
 			complex = setdiff(complex, sc)
-			c = isempty(complex) ? 0 : coassembly(st, complex, scs, cache)
+			c = isempty(complex) ? 0 : assembly(st, complex, scs, cache)
 			cc = min(cc, c)
 		end
 		cc += length(ss)
@@ -42,6 +40,15 @@ function coassembly(st, ss, sc, cache)
 	end
 end
 
-coassembly(st, ss) = coassembly(st, ss, Set{String}(), Dict{Tuple{Set{String},Set{String}},Int}())
+assembly(st, ss, sc) = assembly(st, ss, sc, Dict{NTuple{2,Set{String}}, Int}())
+assembly(st, ss) = assembly(st, ss, Set{String}())
+
+function assembly(s::String...)
+	st = merge(Dict{String, Set{NTuple{2,String}}}(), stringtree.(s)...)
+	ss = Set(s)
+	sc = filter(s -> any(t -> s != t && isbelow(s, t), ss), ss)
+	ss = setdiff(ss, sc)
+	assembly(st, Set(s), sc)
+end
 
 isbelow(s::String, t::String) = !isnothing(findfirst(s, t))
