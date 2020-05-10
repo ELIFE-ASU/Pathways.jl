@@ -1,25 +1,5 @@
 using Base.Iterators
 
-function substrings(s::String)
-	ss = Set{String}()
-	stack = String[s]
-	while !isempty(stack)
-		str = pop!(stack)
-		for i in 1:length(str)-1
-			a, b = str[1:i], str[i+1:end]
-			if !(a in ss)
-				push!(ss, a)
-				push!(stack, a)
-			end
-			if !(b in ss)
-				push!(ss, b)
-				push!(stack, b)
-			end
-		end
-	end
-	ss
-end
-
 function stringtree(s::String)
 	st = Dict{String, Set{Tuple{String,String}}}()
 	stack = [s]
