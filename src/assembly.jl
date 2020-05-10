@@ -1,13 +1,15 @@
 using Base.Iterators
 
-const SplitTree = Dict{T, Set{NTuple{2,T}}} where T
+const Split = NTuple{2}
+const SplitTree = Dict{T, Set{Split{T}}} where T
+const Cache = Dict{NTuple{2, Set{T}}, Int} where T
 
-function splittree(s::String)
-	st = SplitTree{String}()
+function splittree(s::S) where {S <: AbstractString}
+	st = SplitTree{S}()
 	stack = [s]
 	while !isempty(stack)
 		str = pop!(stack)
-		st[str] = Set{Tuple{String,String}}()
+		st[str] = Set{Split{S}}()
 		for i in 1:length(str)-1
 			a, b = str[1:i], str[i+1:end]
 			push!(st[str], (a, b))
@@ -22,7 +24,7 @@ function splittree(s::String)
 	st
 end
 
-function assembly(st, ss, sc, cache)
+function assembly(st::SplitTree{S}, ss::Set{S}, sc::Set{S}, cache::Cache{S}) where {S <: AbstractString}
 	if haskey(cache, (ss, sc))
 		cache[(ss, sc)]
 	else
@@ -42,15 +44,20 @@ function assembly(st, ss, sc, cache)
 	end
 end
 
-assembly(st, ss, sc) = assembly(st, ss, sc, Dict{NTuple{2,Set{String}}, Int}())
-assembly(st, ss) = assembly(st, ss, Set{String}())
+function assembly(st::SplitTree{S}, ss::Set{S}, sc::Set{S}) where {S <: AbstractString}
+	assembly(st, ss, sc, Cache{S}())
+end
 
-function assembly(s::String...)
-	st = merge(Dict{String, Set{NTuple{2,String}}}(), splittree.(s)...)
+function assembly(st::SplitTree{S}, ss::Set{S}) where {S <: AbstractString}
+	assembly(st, ss, Set{S}())
+end
+
+function assembly(s::S...) where {S <: AbstractString}
+	st = merge(SplitTree{String}(), splittree.(s)...)
 	ss = Set(s)
 	sc = filter(s -> any(t -> s != t && isbelow(s, t), ss), ss)
 	ss = setdiff(ss, sc)
 	assembly(st, Set(s), sc)
 end
 
-isbelow(s::String, t::String) = !isnothing(findfirst(s, t))
+isbelow(s::S, t::S) where {S <: AbstractString} = !isnothing(findfirst(s, t))
