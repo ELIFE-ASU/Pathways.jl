@@ -1,7 +1,9 @@
 using Base.Iterators
 
-function stringtree(s::String)
-	st = Dict{String, Set{Tuple{String,String}}}()
+const SplitTree = Dict{T, Set{NTuple{2,T}}} where T
+
+function splittree(s::String)
+	st = SplitTree{String}()
 	stack = [s]
 	while !isempty(stack)
 		str = pop!(stack)
@@ -44,7 +46,7 @@ assembly(st, ss, sc) = assembly(st, ss, sc, Dict{NTuple{2,Set{String}}, Int}())
 assembly(st, ss) = assembly(st, ss, Set{String}())
 
 function assembly(s::String...)
-	st = merge(Dict{String, Set{NTuple{2,String}}}(), stringtree.(s)...)
+	st = merge(Dict{String, Set{NTuple{2,String}}}(), splittree.(s)...)
 	ss = Set(s)
 	sc = filter(s -> any(t -> s != t && isbelow(s, t), ss), ss)
 	ss = setdiff(ss, sc)
