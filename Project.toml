@@ -1,0 +1,4 @@
+name = "Pathways"
+uuid = "19ca04dd-1ee6-4c1f-95e1-86f6eb7fb173"
+authors = ["Douglas G. Moore <doug@dglmoore.com>"]
+version = "0.1.0"
