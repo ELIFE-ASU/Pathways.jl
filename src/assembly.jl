@@ -33,7 +33,7 @@ function assembly(st::SplitTree{S}, ss::Set{S}, sc::Set{S}, cache::Cache{S}) whe
 		for group in product(components...)
 			objects = Set(vcat(collect.(group)...))
 			complex = filter(s -> length(s) > 1, objects)
-			scs = filter(s -> any(t -> s != t && isbelow(s, t), complex), complex)
+			scs = filter(s -> any(t -> isbelow(s, t), complex), complex)
 			scs = union(sc, scs)
 			complex = setdiff(complex, sc)
 			c = isempty(complex) ? 0 : assembly(st, complex, scs, cache)
@@ -44,20 +44,12 @@ function assembly(st::SplitTree{S}, ss::Set{S}, sc::Set{S}, cache::Cache{S}) whe
 	end
 end
 
-function assembly(st::SplitTree{S}, ss::Set{S}, sc::Set{S}) where {S <: AbstractString}
-	assembly(st, ss, sc, Cache{S}())
-end
-
-function assembly(st::SplitTree{S}, ss::Set{S}) where {S <: AbstractString}
-	assembly(st, ss, Set{S}())
-end
-
-function assembly(s::S...) where {S <: AbstractString}
+function assembly(s::S...; cache::Cache{S}=Cache{S}()) where {S <: AbstractString}
 	st = merge(SplitTree{String}(), splittree.(s)...)
 	ss = Set(s)
-	sc = filter(s -> any(t -> s != t && isbelow(s, t), ss), ss)
+        sc = filter(s -> any(t -> isbelow(s, t), ss), ss)
 	ss = setdiff(ss, sc)
-	assembly(st, Set(s), sc)
+	assembly(st, Set(s), sc, cache)
 end
 
-isbelow(s::S, t::S) where {S <: AbstractString} = !isnothing(findfirst(s, t))
+isbelow(s::S, t::S) where {S <: AbstractString} = length(s) != length(t) && !isnothing(findfirst(s, t))
