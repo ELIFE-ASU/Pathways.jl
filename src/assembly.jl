@@ -45,7 +45,7 @@ function assembly(st::SplitTree{S}, ss::Set{S}, sc::Set{S}, cache::Cache{S}) whe
 end
 
 function assembly(s::S...; cache::Cache{S}=Cache{S}()) where {S <: AbstractString}
-    st = merge(SplitTree{String}(), splittree.(s)...)
+    st = merge(SplitTree{S}(), splittree.(s)...)
     ss = Set(s)
     sc = shortcuts(ss)
     setdiff!(ss, sc)
