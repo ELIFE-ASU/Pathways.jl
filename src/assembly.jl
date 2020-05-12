@@ -34,8 +34,8 @@ function assembly(st::SplitTree{S}, ss::Set{S}, sc::Set{S}, cache::Cache{S}) whe
             objects = Set(vcat(collect.(group)...))
             complex = filter(s -> length(s) > 1, objects)
             scs = filter(s -> any(t -> isbelow(s, t), complex), complex)
-            scs = union(sc, scs)
-            complex = setdiff(complex, sc)
+            union!(scs, sc)
+            setdiff!(complex, sc)
             c = isempty(complex) ? 0 : assembly(st, complex, scs, cache)
             cc = min(cc, c)
         end
@@ -48,7 +48,7 @@ function assembly(s::S...; cache::Cache{S}=Cache{S}()) where {S <: AbstractStrin
     st = merge(SplitTree{String}(), splittree.(s)...)
     ss = Set(s)
     sc = filter(s -> any(t -> isbelow(s, t), ss), ss)
-    ss = setdiff(ss, sc)
+    setdiff!(ss, sc)
     assembly(st, Set(s), sc, cache)
 end
 
