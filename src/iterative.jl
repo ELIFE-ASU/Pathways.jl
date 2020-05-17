@@ -30,46 +30,56 @@ end
 
 shortcuts(ss::Set) = filter(s -> any(t -> isbelow(s, t), ss), ss)
 
+mutable struct Frame{S}
+    ss::Set{S}
+    sc::Set{S}
+    cc::Int
+    parent::Int
+    seen::Bool
+
+    Frame(ss::Set{S}, sc::Set{S}, cc::Int, parent::Int, seen::Bool) where S = new{S}(ss, sc, cc, parent, seen)
+end
+
+Base.hash(f::Frame, salt::UInt) = salt ⊻ hash((f.ss, f.sc))
+
 function assembly(st::SplitTree{S}, ss::Set{S}, sc::Set{S}; cache::Cache=Cache()) where S
 	stack = Array{Any}(undef, 1024)
-	ptr = 1
-	stack[ptr] = [ss, sc, typemax(Int), 0, false]
+    ptr = 1
+	stack[ptr] = Frame(ss, sc, typemax(Int), 0, false)
 
 	while ptr > 0
-		ss, sc, cc, parent, seen = stack[ptr]
+        frame = stack[ptr]
 		ptr -= 1
-		if haskey(cache, hash((ss, sc)))
-			cc = cache[hash((ss, sc))]
-			f = stack[parent]
-			f[3] = min(f[3], length(f[1]) + cc)
-		elseif seen && parent != 0
-			f = stack[parent]
-			f[3] = min(f[3], length(f[1]) + cc)
-			cache[hash((ss, sc))] = cc
-		elseif !seen
-			ptr += 1
-			stack[ptr] = [ss, sc, cc, parent, true]
+		if haskey(cache, hash(frame))
+			cc = cache[hash(frame)]
+			f = stack[frame.parent]
+			f.cc = min(f.cc, length(f.ss) + cc)
+		elseif frame.seen && frame.parent != 0
+			f = stack[frame.parent]
+			f.cc = min(f.cc, length(f.ss) + frame.cc)
+			cache[hash(frame)] = frame.cc
+		elseif !frame.seen
+			stack[ptr += 1].seen = true
 			parent = ptr
-			components = (st[s] for s in ss)
+			components = (st[s] for s in frame.ss)
 			for group in product(components...)
 				objects = Set(vcat(collect.(group)...))
 				complex = filter(!isbasic, objects)
 				scs = shortcuts(complex)
-				union!(scs, sc)
-				setdiff!(complex, sc)
+				union!(scs, frame.sc)
+				setdiff!(complex, frame.sc)
 				if ptr == length(stack)
 					resize!(stack, 2length(stack))
 				end
-				ptr += 1
 				if isempty(complex)
-					stack[ptr] = [complex, scs, 0, parent, true]
+					stack[ptr += 1] = Frame(complex, scs, 0, parent, true)
 				else
-					stack[ptr] = [complex, scs, typemax(Int), parent, false]
+					stack[ptr += 1] = Frame(complex, scs, typemax(Int), parent, false)
 				end
 			end
 		end
 	end
-	stack[1][3]
+    stack[1].cc
 end
 
 function assembly(s::S...; cache::Cache=Cache()) where S
