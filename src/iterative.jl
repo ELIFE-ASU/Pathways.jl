@@ -37,55 +37,60 @@ mutable struct Frame{S}
     parent::Int
     seen::Bool
 
-    Frame(ss::Set{S}, sc::Set{S}, cc::Int, parent::Int, seen::Bool) where S = new{S}(ss, sc, cc, parent, seen)
+    Frame(ss::Set{S}, sc::Set{S}, parent::Int) where S = new{S}(ss, sc, typemax(Int), parent, false)
 end
 
 Base.hash(f::Frame, salt::UInt) = salt ⊻ hash((f.ss, f.sc))
 
-function assembly(st::SplitTree{S}, ss::Set{S}, sc::Set{S}; cache::Cache=Cache()) where S
-	stack = Array{Any}(undef, 1024)
-    ptr = 1
-	stack[ptr] = Frame(ss, sc, typemax(Int), 0, false)
+bump!(f::Frame, cc::Int) = f.cc = min(f.cc, length(f.ss) + cc)
 
-	while ptr > 0
+bump!(f::Frame{S}, g::Frame{S}) where S = bump!(f, g.cc)
+
+function assembly(st::SplitTree{S}, ss::Set{S}, sc::Set{S}; cache::Cache=Cache()) where S
+    stack = Array{Any}(undef, 1024)
+    ptr = 1
+    stack[ptr] = Frame(ss, sc, 0)
+
+    while ptr > 0
         frame = stack[ptr]
-		ptr -= 1
-		if haskey(cache, hash(frame))
-			cc = cache[hash(frame)]
-			f = stack[frame.parent]
-			f.cc = min(f.cc, length(f.ss) + cc)
-		elseif frame.seen && frame.parent != 0
-			f = stack[frame.parent]
-			f.cc = min(f.cc, length(f.ss) + frame.cc)
-			cache[hash(frame)] = frame.cc
-		elseif !frame.seen
-			stack[ptr += 1].seen = true
-			parent = ptr
-			components = (st[s] for s in frame.ss)
-			for group in product(components...)
-				objects = Set(vcat(collect.(group)...))
-				complex = filter(!isbasic, objects)
-				scs = shortcuts(complex)
-				union!(scs, frame.sc)
-				setdiff!(complex, frame.sc)
-				if ptr == length(stack)
-					resize!(stack, 2length(stack))
-				end
-				if isempty(complex)
-					stack[ptr += 1] = Frame(complex, scs, 0, parent, true)
-				else
-					stack[ptr += 1] = Frame(complex, scs, typemax(Int), parent, false)
-				end
-			end
-		end
-	end
+        ptr -= 1
+        if haskey(cache, hash(frame))
+            bump!(stack[frame.parent], cache[hash(frame)])
+        elseif frame.seen && frame.parent != 0
+            cache[hash(frame)] = frame.cc
+            bump!(stack[frame.parent], frame)
+        elseif !frame.seen
+            stack[ptr += 1].seen = true
+            parent = ptr
+            components = (st[s] for s in frame.ss)
+            for group in product(components...)
+                objects = Set(vcat(collect.(group)...))
+                complex = filter(!isbasic, objects)
+                scs = shortcuts(complex)
+                union!(scs, frame.sc)
+                setdiff!(complex, frame.sc)
+                if ptr == length(stack)
+                    resize!(stack, 2length(stack))
+                end
+                if isempty(complex)
+                    frame.cc = length(frame.ss)
+                    frame.parent != 0 && bump!(stack[frame.parent], frame)
+                    cache[hash(frame)] = frame.cc
+                    ptr = frame.parent
+                    break
+                else
+                    stack[ptr += 1] = Frame(complex, scs, parent)
+                end
+            end
+        end
+    end
     stack[1].cc
 end
 
 function assembly(s::S...; cache::Cache=Cache()) where S
-	st = merge(SplitTree{S}(), splittree.(s)...)
-	ss = Set(s)
-	sc = shortcuts(ss)
-	setdiff!(ss, sc)
-	assembly(st, ss, sc; cache=cache)
+    st = merge(SplitTree{S}(), splittree.(s)...)
+    ss = Set(s)
+    sc = shortcuts(ss)
+    setdiff!(ss, sc)
+    assembly(st, ss, sc; cache=cache)
 end
