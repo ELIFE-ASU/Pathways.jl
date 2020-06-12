@@ -1,6 +1,6 @@
 using Base.Iterators
 
-const Split = NTuple{2}
+const Split = Vector
 const SplitTree = Dict{T, Set{Split{T}}} where T
 const Cache = Dict{NTuple{2, Set{T}}, Int} where T
 
@@ -12,7 +12,7 @@ function splittree(s::S) where {S <: AbstractString}
         st[str] = Set{Split{S}}()
         for i in 1:length(str)-1
             a, b = str[1:i], str[i+1:end]
-            push!(st[str], (a, b))
+            push!(st[str], [a, b])
             if !haskey(st, a)
                 push!(stack, a)
             end
@@ -31,12 +31,13 @@ function assembly(st::SplitTree{S}, ss::Set{S}, sc::Set{S}, cache::Cache{S}) whe
         cc = typemax(Int)
         components = (st[s] for s in ss)
         for group in product(components...)
-            objects = Set(vcat(collect.(group)...))
-            complex = filter(!isbasic, objects)
-            scs = shortcuts(complex)
+            uv = vcat(group...)
+            filter!(!isbasic, uv)
+            objects = Set(uv)
+            scs = shortcuts(objects)
             union!(scs, sc)
-            setdiff!(complex, sc)
-            c = isempty(complex) ? 0 : assembly(st, complex, scs, cache)
+            setdiff!(objects, sc)
+            c = isempty(objects) ? 0 : assembly(st, objects, scs, cache)
             cc = min(cc, c)
         end
         cc += length(ss)
