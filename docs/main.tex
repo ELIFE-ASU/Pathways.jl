@@ -1,0 +1,144 @@
+\input eplain
+
+\newdimen\singlespace\relax\singlespace=\baselineskip
+\newdimen\doublespace\relax\doublespace=2\singlespace
+\newdimen\triplespace\relax\triplespace=3\singlespace
+
+\def\startsinglespace{\baselineskip=\singlespace}
+\def\startdoublespace{\baselineskip=\doublespace}
+
+\parindent=0em
+\parskip=\singlespace
+
+\newfam\bbfam
+\font\bbtwelve=msbm10 at 12pt
+\font\bbnine=msbm7 at 9pt
+\font\bbseven=msbm5 at 7pt
+\textfont\bbfam=\bbtwelve
+\scriptfont\bbfam=\bbnine
+\scriptscriptfont\bbfam=\bbseven
+\def\bb{\fam=\bbfam}
+
+\def\powerset#1{{\cal P}(#1)}
+\def\justbelow#1{\lfloor #1 \rfloor}
+\def\downset#1{\downarrow\!#1}
+
+\everyfootnote = {%
+	\advance\parindent by 1em\relax
+	\startsinglespace}
+\interfootnoteskip=\singlespace
+\let\footnote=\numberedfootnote
+
+\def\truenull{\null\vskip-\baselineskip}
+\def\noskip{\truenull\vskip-\baselineskip}
+\def\trueskip#1{\noskip\vskip#1}
+
+\def\tableword{Table}
+\newbox\capbox
+\newcount\tabnum
+\def\table#1#2#3{
+	\global\advance\tabnum by 1
+	\begingroup
+	\setbox\capbox = \vbox{
+		\startsinglespace
+		\leftskip=0pt plus 1fil
+		\rightskip=\leftskip
+		\parfillskip=0pt
+		\noindent\tableword~\the\tabnum: #3
+	}
+	\vskip\singlespace
+	\vbox{
+		\hbox to \hsize{\hss#2\hss}
+		\box\capbox
+	}
+	\trueskip\triplespace
+	\endgroup
+}
+
+\begingroup
+\baselineskip=2\baselineskip
+\centerline{\bf A simple approach to computing Assembly Indices}
+\centerline{D.G. Moore, S. Marshall, Y. Liu, S.I. Walker, L. Cronin}
+\centerline{\today}
+\endgroup
+
+\vskip 3\baselineskip
+
+Recall that assembly spaces $(\Gamma, \phi)$ are defined in the
+supplementary information as a quiver (multigraph) $\Gamma$ together with
+an edge labeling $\phi$ which satisfies a few axioms. Where possible,
+we will simply write $\Gamma$. The vertices of the assembly space
+$V(\Gamma)$ represent objects, e.g. strings, molecules, etc..., and
+edges $E(\Gamma)$ represent a method of constructing that object in a
+single joining operation from previously constructed (or {it a priori})
+objects. The {\it a priori} objects are referred to as basic objects,
+and the set of basic objects is referred to as the {\it basis of the
+assembly space}.
+
+The definitions that follow are labeled alphabetically. References
+to numerically labeled definitions, lemmas and theorems refer to the
+supplementary information.
+
+{\bf Definition a.} Let $a, b \in V(\Gamma)$. We write $a \prec b$ if for
+all $c \in V(\Gamma)$ with $a \le c \le b$\footnote{See ({\bf Lemma. 1})
+for an explanation of $\le$.}, either $c = a$ or $c = b$.
+
+In the context of an assembly space, $a \prec b$ denotes that $b$ can
+be constructed from $a$ in a single step by joining $a$ with something
+else in the space.
+
+{\bf Definition b.} Let $a \in V(\Gamma)$, the $\coprod a = \{(u, \phi(u))
+\in V(\Gamma) \times V(\Gamma) ~|~ u \prec a \}$. For $S \subseteq
+V(\Gamma)$, let $\coprod S = \bigotimes\limits_{a \in S} \coprod a$.
+
+You can think of $\coprod a$ as the set of all pairs of things that can
+be joined to make $a$.  Similarly, $\coprod S$ where $S$ is a set of
+objects can be thought of as all of the ways that every object in $S$
+can be constructed in a single step.
+
+{\bf Definition c.} Let $U \subseteq V(\Gamma)$. $S(U) = \{ a \in U ~|~
+a \in \downset{(U \setminus \{a\})} \}$.
+
+As we are building up objects via pairwise joining operations, we need
+to be able to identify "shortcuts" when they are possible. For example,
+consider making $aabaa$. One possible pairwise joining would be $aab *
+aa$. But notice that $aa \le aab$. When we then move on to make $aab$,
+we want to consider make sure that if we decided to make $aab$ as $aa *
+b$ we don't double count $aa$ -- we already made it in the previous step.
+
+In other words, $S(U)$ determined which elements of $U$ could be used
+to make something else in $U$.
+
+\beginsection A recursive expression for (co)assembly indicies
+
+As simply as I can put it$\ldots$
+
+The assembly index of an object $c(x)$ is $1$ greater than the smallest
+coassembly of any pair of objects which can be joint to create $x$.
+
+The coassembly index $cc(\sigma, \tau)$ of a set of objects $\sigma$
+contingent on a set of ``shortcuts'' $\tau$, is the number of complex
+(non-basic) objects in $\sigma$ plus the smallest coassembly of all
+objects which can be pairwise joined to make every object in $\sigma$.
+
+{\it I'm not quite satisfied with this way of writing things, but it's
+about all I've got at the moment.}
+$$
+\eqalign{
+	c(x) & = cc(\{x\}, \emptyset) \cr
+	cc(\sigma, \tau) & = |S \setminus \Gamma_B| +
+		\min\limits_{\alpha \in \coprod \sigma}{}{
+			cc(J(\alpha) \setminus (\Gamma_B \cup S(J(\alpha)) \cup \tau),\;
+			   R(J(\alpha)) \cup \tau)
+		}
+}
+$$
+where
+$$
+J(U) = \bigcup\limits_{(a_1,\ldots,a_n) \in U} \{a_1, \ldots, a_n\}.
+$$
+
+You can find an implementation of this for strings at \hfil\break
+{\tt https://github.com/dglmoore/Pathways.jl/blob/master/src/assembly.jl}.
+
+\bye
