@@ -12,6 +12,7 @@ function splittree(s::S) where {S <: AbstractString}
         st[str] = Set{Split{S}}()
         for i in 1:length(str)-1
             a, b = str[1:i], str[i+1:end]
+            a, b = a <= b ? (a, b) : (b, a)
             push!(st[str], [a, b])
             if !haskey(st, a)
                 push!(stack, a)
