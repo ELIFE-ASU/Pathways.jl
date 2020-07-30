@@ -38,8 +38,12 @@ function assembly(st::SplitTree{S}, ss::Set{S}, sc::Set{S}, cache::Cache{S}) whe
             scs = shortcuts(objects)
             union!(scs, sc)
             setdiff!(objects, sc)
-            c = isempty(objects) ? 0 : assembly(st, objects, scs, cache)
-            cc = min(cc, c)
+            if isempty(objects)
+            	cc = 0
+            	break
+            else
+            	cc = min(cc, assembly(st, objects, scs, cache))
+            end
         end
         cc += length(ss)
         cache[(ss, sc)] = cc
@@ -51,7 +55,7 @@ function assembly(s::S...; cache::Cache{S}=Cache{S}()) where {S <: AbstractStrin
     ss = Set(s)
     sc = shortcuts(ss)
     setdiff!(ss, sc)
-    assembly(st, Set(s), sc, cache)
+    assembly(st, ss, sc, cache)
 end
 
 shortcuts(ss::Set{<:AbstractString}) = filter(s -> any(t -> isbelow(s, t), ss), ss)
