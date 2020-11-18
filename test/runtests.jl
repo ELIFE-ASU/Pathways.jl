@@ -46,7 +46,7 @@ end
 outer(f, iter, n) = map(f ∘ collect, product(fill(iter, n)...))
 outer(iter, n) = map(collect, product(fill(iter, n)...))
 
-for n in 3:10
+for n in 3:11
     elapsed = []
     for str in outer(join, CHARS, n)
         actual, time1 = pathways(str)
@@ -54,11 +54,11 @@ for n in 3:10
 
         push!(elapsed, (n, time1, time2, time1/time2))
 
-		try
-        	@test actual == expected
+        try
+            @test actual == expected
         catch e
-        	println(str)
-        	rethrow(e)
+            println(str)
+            rethrow(e)
         end
     end
     (min, max), med, μ = extrema(last.(elapsed)), median(last.(elapsed)), mean(last.(elapsed))
@@ -66,4 +66,3 @@ for n in 3:10
 end
 
 rm.(["test.txt", "test_pathway.txt"])
-
