@@ -1,4 +1,4 @@
-using DataStructures
+using DataStructures, Random
 
 const Split = Vector
 const SplitTree = Dict{T, Vector{Split{T}}} where T
@@ -26,7 +26,7 @@ function splittree(n::S) where S
     st
 end
 
-shortcuts(ss) = filter(s -> any(t -> isbelow(s, t), ss), ss)
+shortcuts(ss::Vector{T}) where T = convert(Vector{T}, filter(s -> any(t -> isbelow(s, t), ss), ss))
 
 function product(components::Vector{Vector{Vector{T}}}) where T
     M = length(components)
@@ -84,6 +84,36 @@ function assembly(s::S...; limit=typemax(Int)) where S
     assembly(st, ss, sc; limit)
 end
 
+function project(ϕ, st::SplitTree)
+    T = typeof(ϕ(first(keys(st))))
+
+    ϕ̂(x) = sort(map(ϕ, x))
+    tree = SplitTree{T}()
+    for (node, leaves) in st
+        new_node = ϕ(node)
+        new_leaves = unique!(map(ϕ̂, leaves))
+        if haskey(tree, new_node)
+            union!(tree[new_node], new_leaves)
+        else
+            tree[new_node] = new_leaves
+        end
+    end
+    tree
+end
+project(T, ϕ) = st -> project(T, ϕ, st)
+
+function assembly(ϕ::Function, s::S...; limit=typemax(Int)) where S
+    st = merge(SplitTree{S}(), splittree.(s)...)
+    ss = collect(s)
+    sc = shortcuts(ss)::Vector{S}
+
+    ssp = unique!(map(ϕ, ss))
+    scp = convert(typeof(ssp), unique!(map(ϕ, sc)))
+
+    setdiff!(ssp, scp)
+    assembly(project(ϕ, st), ssp, scp; limit)
+end
+
 function split(str::S) where {S <: AbstractString}
     N = length(str) - 1
     xs = Array{Split{S}}(undef, N)
@@ -98,6 +128,12 @@ end
 isbelow(s::S, t::S) where {S <: AbstractString} = length(s) != length(t) && !isnothing(findfirst(s, t))
 isbasic(s::AbstractString) = length(s) ≤ 1
 
+function formula(s::AbstractString; chars=sort(unique(collect(s))))
+    d = Dict(c => 0 for c in chars)
+    merge!(d, counter(collect(s)))
+    last.(sort(collect(d); by=first))
+end
+
 function split(n::Int)
     xs = Array{Split{Int}}(undef, n ÷ 2)
     for i in eachindex(xs)
@@ -111,36 +147,38 @@ end
 isbelow(n::Int, m::Int) = n < m
 isbasic(n::Int) = n == 1
 
-upperassembly(n::Int) = sum(digits(n; base=2)) + floor(Int, log2(floor(n))) - 1
+limit(n::Int) = sum(digits(n; base=2)) + floor(Int, log2(floor(n))) - 1
 
-assembly(n::Int; limit=upperassembly(n)) = assembly(splittree(n), [n], Int[]; limit)
+assembly(n::Int; limit=limit(n)) = assembly(splittree(n), [n], Int[]; limit)
 
-const Cache = Dict{Union{T, NTuple{2,T}}, Int} where T
+function split(v::AbstractVector{Int})
+    a = fill(0, length(v))
+    a[1] = min(1, v[1])
+    b = v .- a
 
-function upperassembly(x::T; cache=Cache{T}()) where T
-    if isbasic(x)
-        0
-    elseif haskey(cache, x)
-        cache[x]
-    else
-        cc = typemax(Int)
-        for (y, z) in split(x)
-            cc = min(cc, upperassembly(y, z; cache) + 1)
+    M = length(v)
+
+    xs = Vector{Vector{Int}}[]
+    i = 1
+    while any(a .< v)
+        if any(a .!= 0)
+            x = (a < b) ? [a, b] : [b, a]
+            push!(xs, deepcopy(x))
         end
-        cache[x] = cc
+        for j in 1:M
+            if a[j] < v[j]
+                a[j] += 1
+                b[j] -= 1
+                for k in 1:j-1
+                    a[k] = 0
+                    b[k] = v[k]
+                end
+                break
+            end
+        end
     end
+    xs
 end
 
-function upperassembly(x::T, y::T; cache=Cache{T}()) where {T <: AbstractString}
-    if haskey(cache, (x, y))
-        return cache[(x, y)]
-    end
-
-    cache[(x,y)] = if isbasic(x) || isbelow(x, y)
-        upperassembly(y; cache)
-    elseif isbasic(y) || isbelow(y, x)
-        upperassembly(x; cache)
-    else
-        upperassembly(x; cache) + upperassembly(y; cache)
-    end
-end
+isbelow(v::V, w::V) where {V <: AbstractVector} = v != w && all(v .≤ w)
+isbasic(v::AbstractVector{Int}) = all(v .≥ 0) && sum(v) == 1
