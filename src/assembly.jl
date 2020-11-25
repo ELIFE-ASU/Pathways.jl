@@ -13,13 +13,11 @@ function splittree(n::S) where S
             if xs in st[m]
                 continue
             end
-            a, b = xs
-            push!(st[m], [a, b])
-            if !haskey(st, a)
-                push!(stack, a)
-            end
-            if !haskey(st, b)
-                push!(stack, b)
+            push!(st[m], xs)
+            for x in xs
+                if !haskey(st, x)
+                    push!(stack, x)
+                end
             end
         end
     end
@@ -118,9 +116,7 @@ function split(str::S) where {S <: AbstractString}
     N = length(str) - 1
     xs = Array{Split{S}}(undef, N)
     for i in 1:N
-        a, b = str[1:i], str[i+1:end]
-        a, b = a <= b ? (a, b) : (b, a)
-        xs[i] = [a, b]
+        xs[i] = [str[1:i], str[i+1:end]]
     end
     xs
 end
@@ -137,9 +133,7 @@ end
 function split(n::Int)
     xs = Array{Split{Int}}(undef, n ÷ 2)
     for i in eachindex(xs)
-        a, b = i, n-i
-        a, b = a <= b ? (a, b) : (b, a)
-        xs[i] = [a, b]
+        xs[i] = [i, n-i]
     end
     xs
 end
