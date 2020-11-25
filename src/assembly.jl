@@ -1,4 +1,4 @@
-using DataStructures, Random
+using DataStructures
 
 const Split = Vector
 const SplitTree = Dict{T, Vector{Split{T}}} where T
