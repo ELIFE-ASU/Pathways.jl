@@ -75,6 +75,9 @@ function assembly(st::SplitTree{S}, ss::Vector{S}, sc::Vector{S}; limit=typemax(
 end
 
 function assembly(s::S...; limit=typemax(Int)) where S
+    if (all(isbasic, s))
+        return 0
+    end
     st = merge(SplitTree{S}(), splittree.(s)...)
     ss = collect(s)
     sc = shortcuts(ss)

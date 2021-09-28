@@ -47,7 +47,7 @@ outer(f, iter, n) = map(f ∘ collect, product(fill(iter, n)...))
 outer(iter, n) = map(collect, product(fill(iter, n)...))
 
 println(" n     min     med       μ     max")
-for n in 3:11
+for n in 2:11
     elapsed = []
     for str in outer(join, CHARS, n)
         actual, time1 = pathways(str)
