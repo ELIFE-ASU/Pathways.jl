@@ -1,4 +1,4 @@
-using DataStructures
+using DataStructures, Primes
 
 const Split = Vector
 const SplitTree = Dict{T, Vector{Split{T}}} where T
@@ -176,3 +176,47 @@ end
 
 isbelow(v::V, w::V) where {V <: AbstractVector} = v != w && all(v .≤ w)
 isbasic(v::AbstractVector{Int}) = all(v .≥ 0) && sum(v) == 1
+
+struct Mult{T <: Integer}
+    x::T
+end
+
+function split(a::Mult{T}) where T
+    xs = Split{Mult{T}}[]
+    fs = factor(a.x).pe
+    ps = first.(fs)
+    ns = last.(fs)
+    map(split(ns)) do sp
+        a, b = sp
+        Mult{T}.([prod(ps .^ a),  prod(ps .^ b)])
+    end
+end
+
+isbelow(a::Mult, b::Mult) = a.x != b.x && b.x % a.x == 0
+isbasic(a::Mult) = isprime(a.x)
+
+struct AddMult{T <: Integer}
+    x::T
+end
+
+Base.convert(::Type{Mult}, a::AddMult) = Mult(a.x)
+Base.convert(::Type{Int}, a::AddMult) = a.x
+Base.convert(::Type{AddMult}, a::Mult) = AddMult(a.x)
+Base.convert(::Type{AddMult}, a::Int) = AddMult(a)
+
+function split(a::AddMult{T}) where T
+    xs = Split{AddMult{T}}[]
+    if !isone(a.x)
+        for (x,y) in [split(Mult(a.x)); split(a.x)]
+            push!(xs, [convert(AddMult, x), convert(AddMult, y)])
+        end
+    else
+        for (x,y) in split(a.x)
+            push!(xs, [convert(AddMult, x), convert(AddMult, y)])
+        end
+    end
+    xs
+end
+
+isbelow(a::AddMult, b::AddMult) = isbelow(a.x, b.x)
+isbasic(a::AddMult) = isone(a.x)
