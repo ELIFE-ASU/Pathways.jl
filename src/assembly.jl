@@ -144,7 +144,7 @@ end
 isbelow(n::Int, m::Int) = n < m
 isbasic(n::Int) = n == 1
 
-limit(n::Int) = sum(digits(n; base=2)) + floor(Int, log2(floor(n))) - 1
+limit(n::Int) = sum(digits(n; base=2)) + floor(Int, log2(n)) - 1
 
 assembly(n::Int; limit=limit(n)) = assembly(splittree(n), [n], Int[]; limit)
 
