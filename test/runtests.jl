@@ -46,6 +46,7 @@ end
 outer(f, iter, n) = map(f ∘ collect, product(fill(iter, n)...))
 outer(iter, n) = map(collect, product(fill(iter, n)...))
 
+println(" n     min     med       μ     max")
 for n in 3:11
     elapsed = []
     for str in outer(join, CHARS, n)
@@ -57,7 +58,7 @@ for n in 3:11
         try
             @test actual == expected
         catch e
-            println(str)
+            @error "Test failed on" str
             rethrow(e)
         end
     end
