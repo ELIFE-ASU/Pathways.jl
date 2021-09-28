@@ -197,6 +197,7 @@ end
 
 isbelow(a::Mult, b::Mult) = a.x != b.x && b.x % a.x == 0
 isbasic(a::Mult) = isprime(a.x)
+Base.isless(a::Mult, b::Mult) = isless(a.x, b.x)
 
 struct AddMult{T <: Integer}
     x::T
@@ -223,3 +224,4 @@ end
 
 isbelow(a::AddMult, b::AddMult) = isbelow(a.x, b.x)
 isbasic(a::AddMult) = isone(a.x)
+Base.isless(a::AddMult, b::AddMult) = isless(a.x, b.x)
