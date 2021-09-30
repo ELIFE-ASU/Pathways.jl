@@ -35,36 +35,38 @@ end
 retain(bound::Int, aᵢ::Int) = aᵢ ≥ bound
 retain(bound::Int, aᵢ::Int, aᵢ₋₁::Int) = aᵢ + aᵢ₋₁ ≥ bound
 
-function stackchildren!(stack::Vector{Vector{Int}}, chain::Vector{Int}; verbose=false)
-    aᵢ = chain[end]
+function stackchildren!(n::Int, stack::Vector{Vector{Int}}; verbose=false)
+    aᵢ = stack[end][end]
     segment = Int[]
-    for i in 1:length(chain), j in i:length(chain)
-        aᵢ₊₁ = chain[i] + chain[j]
-        if aᵢ < aᵢ₊₁
+    for i in 1:length(stack), j in i:length(stack)
+        aᵢ₊₁ = stack[i][end] + stack[j][end]
+        if aᵢ < aᵢ₊₁ ≤ n
             push!(segment, aᵢ₊₁)
         end
     end
-    sort!(segment)
-    push!(stack, segment[1:end])
-    segment[end]
+    unique!(sort!(segment))
+    push!(stack, segment)
 end
 
-function backup(stack::Vector{Vector{Int}}, chain::Vector{Int}; verbose=false)
-    while !isempty(stack)
-        verbose && @info "Stack is not empty"
-        if !isempty(stack[end])
-            chain[end] = pop!(stack[end])
-            verbose && @info "Stack segment is not empty" popped = chain[end]
-            break
-        else
-            verbose && @info "Stack segment is empty"
+function backup(stack::Vector{Vector{Int}}; verbose=false)
+    while length(stack) > 2
+        pop!(stack[end])
+        if isempty(stack[end])
             pop!(stack)
-            pop!(chain)
+        else
+            break
         end
     end
+    length(stack) == 2
 end
 
 function shortestchain(n::Int; verbose=false)
+    if n < one(n)
+        error("no chains defined for integers less than 1")
+    elseif isone(n)
+        return 0
+    end
+
     if n ≤ 327_678 || ν(n) ≤ 16
         # We add 1 because Julia indexs from 1
         lb = λ(n) + ceil(Int, log2(ν(n))) + 1
@@ -73,10 +75,7 @@ function shortestchain(n::Int; verbose=false)
         lb = ceil(Int, log2(n) + log2(ν(n)) - 2.13)
     end
 
-    chain = [1, 2]
-    stack = Vector{Int}[]
-
-    loop = 0
+    stack = Vector{Int}[[1],[2]]
 
     while true
         vertical, slant = if n % 5 != 0
@@ -88,25 +87,32 @@ function shortestchain(n::Int; verbose=false)
             vertical, slant
         end
 
-        i = 2
-        verbose && @info "Outer Loop" i lb vertical slant
+        verbose && @info "Outer Loop" lb vertical slant
         while true
-            verbose && @info "State" n stack chain i lb loop
+            i = length(stack)
+            verbose && @info "State" n stack lb loop
             if i ≤ lb
-                if chain[i] ≤ n && retain(vertical[i], chain[i]) && retain(slant[i+1], chain[i], chain[i-1])
-                    verbose && @info "Retained" chain[i]
-                    if chain[end] == n
-                        return lb - 1, chain
+                aᵢ₋₁, aᵢ = stack[i-1][end], stack[i][end]
+
+                if retain(vertical[i], aᵢ) && (n != 2^(lb - i + 1) * aᵢ) && retain(slant[i+1], aᵢ, aᵢ₋₁)
+                    verbose && @info "Retained" aᵢ
+                    if aᵢ == n
+                        return lb - 1, last.(stack), loop
                     end
-                    push!(chain, stackchildren!(stack, chain; verbose))
-                    i += 1
+                    stackchildren!(n, stack; verbose)
                 else
-                    verbose && @info "Did not retain" chain[i] loop
-                    backup(stack, chain; verbose)
+                    verbose && @info "Did not retain" aᵢ loop
+                    if backup(stack; verbose)
+                        loop += 1
+                        break
+                    end
                 end
             else
                 verbose && @info "Reached lower bound" loop
-                backup(stack, chain; verbose)
+                if backup(stack; verbose)
+                    loop += 1
+                    break
+                end
             end
             loop += 1
         end
