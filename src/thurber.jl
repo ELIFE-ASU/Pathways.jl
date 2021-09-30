@@ -77,6 +77,7 @@ function shortestchain(n::Int; verbose=false)
 
     stack = Vector{Int}[[1],[2]]
 
+    loop = 1
     while true
         vertical, slant = if n % 5 != 0
             vertical = bounds(BoundingSequenceC, n, lb)
