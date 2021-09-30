@@ -2,6 +2,15 @@ using Primes
 
 ν(n::Int) = sum(digits(n, base=2))
 λ(n::Int) = floor(Int, log2(n))
+function lowerbound(n::Int)
+    if n ≤ 327_678 || ν(n) ≤ 16
+        # We add 1 because Julia indexs from 1
+        λ(n) + ceil(Int, log2(ν(n))) + 1
+    else
+        # We add 1 because Julia indexs from 1
+        ceil(Int, log2(n) + log2(ν(n)) - 2.13)
+    end
+end
 
 abstract type BoundingSequence end
 abstract type BoundingSequenceA <: BoundingSequence end
@@ -65,15 +74,8 @@ function shortestchain(n::Int; verbose=false)
         return 0
     end
 
-    if n ≤ 327_678 || ν(n) ≤ 16
-        # We add 1 because Julia indexs from 1
-        lb = λ(n) + ceil(Int, log2(ν(n))) + 1
-    else
-        # We add 1 because Julia indexs from 1
-        lb = ceil(Int, log2(n) + log2(ν(n)) - 2.13)
-    end
-
     stack = Vector{Int}[[1],[2]]
+    lb = lowerbound(n)
 
     loop = 1
     while true
