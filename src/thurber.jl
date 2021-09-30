@@ -40,7 +40,12 @@ function bounds(::Type{BoundingSequenceC}, n::Int, lb::Int)
 end
 
 retain(bound::Int, aᵢ::Int) = aᵢ ≥ bound
-retain(bound::Int, aᵢ::Int, aᵢ₋₁::Int) = aᵢ + aᵢ₋₁ ≥ bound
+retain(bound::Int, aᵢ₋₁::Int, aᵢ::Int) = aᵢ + aᵢ₋₁ ≥ bound
+retain(n::Int, lb::Int, i::Int, aᵢ::Int) = n != 2^(lb - i + 1) * aᵢ
+
+function retain(n::Int, lb::Int, v::Int, s::Int, i::Int, aᵢ₋₁::Int, aᵢ::Int)
+    retain(v, aᵢ) && retain(n, lb, i, aᵢ) && retain(s, aᵢ₋₁, aᵢ)
+end
 
 function stackchildren!(n::Int, stack::Vector{Vector{Int}}; verbose=false)
     aᵢ = stack[end][end]
@@ -95,7 +100,7 @@ function shortestchain(n::Int; verbose=false)
             if i ≤ lb
                 aᵢ₋₁, aᵢ = stack[i-1][end], stack[i][end]
 
-                if retain(vertical[i], aᵢ) && (n != 2^(lb - i + 1) * aᵢ) && retain(slant[i+1], aᵢ, aᵢ₋₁)
+                if retain(n, lb, vertical[i], slant[i+1], i, aᵢ₋₁, aᵢ)
                     verbose && @info "Retained" aᵢ
                     if aᵢ == n
                         return lb - 1, last.(stack), loop
