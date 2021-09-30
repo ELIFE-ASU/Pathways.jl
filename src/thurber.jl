@@ -1,3 +1,5 @@
+using Primes
+
 ν(n::Int) = sum(digits(n, base=2))
 λ(n::Int) = floor(Int, log2(n))
 
@@ -15,11 +17,7 @@ function bounds(::Type{BoundingSequenceA}, n::Int, lb::Int)
 end
 
 function bounds(::Type{BoundingSequenceC}, n::Int, lb::Int)
-    t = if iseven(n)
-        factor(n)[2]
-    else
-        zero(n)
-    end
+    t = iseven(n) ? factor(n)[2] : zero(n)
 
     seq = zeros(Int, lb + 1)
     seq[end] = n
