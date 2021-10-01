@@ -129,7 +129,7 @@ function shortestchain(n::Int)
     if n < one(n)
         error("no chains defined for integers less than 1")
     elseif isone(n)
-        return 0
+        return 0, [1], 0
     end
 
     thurber = Thurber(n)
