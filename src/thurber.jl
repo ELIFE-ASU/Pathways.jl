@@ -47,111 +47,81 @@ function retain(n::Int, lb::Int, v::Int, s::Int, i::Int, aᵢ₋₁::Int, aᵢ::
     retain(v, aᵢ) && retain(n, lb, i, aᵢ) && retain(s, aᵢ₋₁, aᵢ)
 end
 
-mutable struct Thurber
-    n::Int
-    lb::Int
-    vertical::Vector{Int}
-    slant::Vector{Int}
-    stack::Vector{Vector{Int}}
-    function Thurber(n::Int)
-        lb = lowerbound(n)
-        vertical, slant = bounds(n, lb)
-        new(n, lb, vertical, slant, [[1], [2]])
-    end
-end
-Base.length(thurber::Thurber) = length(thurber.stack)
-Base.getindex(thurber::Thurber, idx) = getindex(thurber.stack, idx)[end]
-Base.lastindex(thurber::Thurber) = lastindex(thurber.stack)
-chain(thurber::Thurber) = last.(thurber.stack)
-function Base.push!(thurber::Thurber, segment::Vector{Int})
-    push!(thurber.stack, segment)
-    thurber
-end
-Base.pop!(thurber::Thurber) = pop!(thurber.stack)
-
-function bounds(n::Int, lb::Int)
-    if n % 5 != 0
-        vertical = bounds(BoundingSequenceC, n, lb)
-        vertical, vertical
-    else
-        vertical = bounds(BoundingSequenceC, n, lb)
-        slant = bounds(BoundingSequenceA, n, lb)
-        vertical, slant
-    end
-end
-
-function bounds!(thurber::Thurber)
-    thurber.vertical, thurber.slant = bounds(thurber.n, thurber.lb)
-    thurber
-end
-
-function bump!(thurber::Thurber)
-    thurber.lb += 1
-    bounds!(thurber)
-    thurber
-end
-
-function retain(thurber::Thurber)
-    i = length(thurber)
-    aᵢ₋₁, aᵢ = thurber[end-1], thurber[end]
-    retain(thurber.n, thurber.lb, thurber.vertical[i], thurber.slant[i+1], i, aᵢ₋₁, aᵢ)
-end
-
-function stackchildren!(thurber::Thurber)
-    aᵢ = thurber[end]
+function stackchildren!(n::Int, stack::Vector{Vector{Int}}; verbose=false)
+    aᵢ = stack[end][end]
     segment = Int[]
-    for i in 1:length(thurber), j in i:length(thurber)
-        aᵢ₊₁ = thurber[i] + thurber[j]
-        if aᵢ < aᵢ₊₁ ≤ thurber.n
+    for i in 1:length(stack), j in i:length(stack)
+        aᵢ₊₁ = stack[i][end] + stack[j][end]
+        if aᵢ < aᵢ₊₁ ≤ n
             push!(segment, aᵢ₊₁)
         end
     end
     unique!(sort!(segment))
-    push!(thurber, segment)
+    push!(stack, segment)
 end
 
-function backup!(thurber::Thurber)
-    while length(thurber) > 2
-        pop!(thurber.stack[end])
-        if isempty(thurber.stack[end])
-            pop!(thurber)
+function backup(stack::Vector{Vector{Int}}; verbose=false)
+    while length(stack) > 2
+        pop!(stack[end])
+        if isempty(stack[end])
+            pop!(stack)
         else
             break
         end
     end
-    length(thurber) == 2
+    length(stack) == 2
 end
 
-found(thurber::Thurber) = thurber[end] == thurber.n
-ispartial(thurber::Thurber) = length(thurber) ≤ thurber.lb
-
-function shortestchain(n::Int)
+function shortestchain(n::Int; verbose=false)
     if n < one(n)
         error("no chains defined for integers less than 1")
     elseif isone(n)
         return 0, [1], 0
     end
 
-    thurber = Thurber(n)
+    stack = Vector{Int}[[1],[2]]
+    lb = lowerbound(n)
 
     loop = 1
     while true
+        vertical, slant = if n % 5 != 0
+            vertical = bounds(BoundingSequenceC, n, lb)
+            vertical, vertical
+        else
+            vertical = bounds(BoundingSequenceC, n, lb)
+            slant = bounds(BoundingSequenceA, n, lb)
+            vertical, slant
+        end
+
+        verbose && @info "Outer Loop" lb vertical slant
         while true
-            if ispartial(thurber)
-                if found(thurber)
-                    return length(thurber) - 1, chain(thurber), loop
-                elseif retain(thurber)
-                    stackchildren!(thurber)
-                elseif backup!(thurber)
+            i = length(stack)
+            verbose && @info "State" n stack lb loop
+            if i ≤ lb
+                aᵢ₋₁, aᵢ = stack[i-1][end], stack[i][end]
+
+                if retain(n, lb, vertical[i], slant[i+1], i, aᵢ₋₁, aᵢ)
+                    verbose && @info "Retained" aᵢ
+                    if aᵢ == n
+                        return lb - 1, last.(stack), loop
+                    end
+                    stackchildren!(n, stack; verbose)
+                else
+                    verbose && @info "Did not retain" aᵢ loop
+                    if backup(stack; verbose)
+                        loop += 1
+                        break
+                    end
+                end
+            else
+                verbose && @info "Reached lower bound" loop
+                if backup(stack; verbose)
                     loop += 1
                     break
                 end
-            elseif backup!(thurber)
-                loop += 1
-                break
             end
             loop += 1
         end
-        bump!(thurber)
+        lb += 1
     end
 end
