@@ -39,6 +39,17 @@ function bounds(::Type{BoundingSequenceC}, n::Int, lb::Int)
     seq
 end
 
+function bounds(n::Int, lb::Int)
+    if n % 5 != 0
+        vertical = bounds(BoundingSequenceC, n, lb)
+        vertical, vertical
+    else
+        vertical = bounds(BoundingSequenceC, n, lb)
+        slant = bounds(BoundingSequenceA, n, lb)
+        vertical, slant
+    end
+end
+
 retain(bound::Int, aᵢ::Int) = aᵢ ≥ bound
 retain(bound::Int, aᵢ₋₁::Int, aᵢ::Int) = aᵢ + aᵢ₋₁ ≥ bound
 retain(n::Int, lb::Int, i::Int, aᵢ::Int) = n != 2^(lb - i + 1) * aᵢ
@@ -84,15 +95,7 @@ function shortestchain(n::Int; verbose=false)
 
     loop = 1
     while true
-        vertical, slant = if n % 5 != 0
-            vertical = bounds(BoundingSequenceC, n, lb)
-            vertical, vertical
-        else
-            vertical = bounds(BoundingSequenceC, n, lb)
-            slant = bounds(BoundingSequenceA, n, lb)
-            vertical, slant
-        end
-
+        vertical, slant = bounds(n, lb)
         verbose && @info "Outer Loop" lb vertical slant
         while true
             i = length(stack)
