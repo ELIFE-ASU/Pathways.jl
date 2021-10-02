@@ -5,17 +5,8 @@ const DISPLAYOFF = "--DisplayOff"
 const TMPFILE = joinpath(@__DIR__, "test.txt")
 const PATHFILE = joinpath(@__DIR__, "test_pathway.txt")
 
-const CHARS = 'a':'b'
-
 const NUM_PATHS = r"Number of pathways: (\d+)"
 const ASSEMBLY_INDEX = r"Assembly Index = (\d+)"
-
-function pathways(str::AbstractString)
-    elapsed = @elapsed begin
-        actual = assembly(str)
-    end
-    actual, elapsed
-end
 
 function stringpa(str::AbstractString)
     expected = -1
@@ -24,7 +15,7 @@ function stringpa(str::AbstractString)
         println(io, str)
     end
 
-    elapsed = @elapsed run(`$GROUNDTRUTH $TMPFILE $DISPLAYOFF`)
+    run(`$GROUNDTRUTH $TMPFILE $DISPLAYOFF`)
 
     expected = -1
     for line in readlines(PATHFILE)
@@ -40,30 +31,16 @@ function stringpa(str::AbstractString)
         end
     end
 
-    expected, elapsed
+    expected
 end
 
 outer(f, iter, n) = map(f ∘ collect, product(fill(iter, n)...))
 outer(iter, n) = map(collect, product(fill(iter, n)...))
 
-println(" n     min     med       μ     max")
-for n in 2:11
-    elapsed = []
-    for str in outer(join, CHARS, n)
-        actual, time1 = pathways(str)
-        expected, time2 = stringpa(str)
-
-        push!(elapsed, (n, time1, time2, time1/time2))
-
-        try
-            @test actual == expected
-        catch e
-            @error "Test failed on" str
-            rethrow(e)
-        end
-    end
-    (min, max), med, μ = extrema(last.(elapsed)), median(last.(elapsed)), mean(last.(elapsed))
-    @printf "%2d %0.5f %0.5f %0.5f %0.5f\n" n min med μ max
+@time @testset "Assembly" begin
+    include("assembly.jl")
 end
 
-rm.(["test.txt", "test_pathway.txt"])
+@time @testset "Shortest Chain" begin
+    include("thurber.jl")
+end
