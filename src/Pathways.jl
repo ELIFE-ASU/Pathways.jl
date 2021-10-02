@@ -1,6 +1,6 @@
 module Pathways
 
-export assembly, shortestchain
+export assembly, thurber
 
 include("assembly.jl")
 include("thurber.jl")

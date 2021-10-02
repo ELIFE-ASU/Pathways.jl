@@ -83,7 +83,7 @@ function backup(stack::Vector{Vector{Int}}; verbose=false)
     length(stack) == 2
 end
 
-function shortestchain(n::Int; verbose=false)
+function thurber(n::Int; verbose=false)
     if n < one(n)
         error("no chains defined for integers less than 1")
     elseif isone(n)

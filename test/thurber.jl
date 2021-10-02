@@ -12,7 +12,7 @@
 
         for (n, expected) in enumerate(table)
             try
-                @test first(shortestchain(n)) == expected
+                @test thurber(n) == expected
             catch
                 @error "Test failed on" n
                 rethrow
@@ -24,7 +24,7 @@
         for (i, n) in enumerate(table)
             expected = i - 1
             try
-                @test first(shortestchain(n)) == expected
+                @test thurber(n) == expected
             catch
                 @error "Test failed on" n
                 rethrow
@@ -34,7 +34,7 @@
         for i in 2:10, n in table[i-1]:table[i]-1
             expected = i - 1
             try
-                @test first(shortestchain(n)) < expected
+                @test thurber(n) < expected
             catch
                 @error "Test failed on" n
                 rethrow
