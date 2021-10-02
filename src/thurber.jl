@@ -87,7 +87,7 @@ function shortestchain(n::Int; verbose=false)
     if n < one(n)
         error("no chains defined for integers less than 1")
     elseif isone(n)
-        return 0, [1], 0
+        return 0
     end
 
     stack = Vector{Int}[[1],[2]]
@@ -106,7 +106,7 @@ function shortestchain(n::Int; verbose=false)
                 if retain(n, lb, vertical[i], slant[i+1], i, aᵢ₋₁, aᵢ)
                     verbose && @info "Retained" aᵢ
                     if aᵢ == n
-                        return lb - 1, last.(stack), loop
+                        return length(stack) - 1
                     end
                     stackchildren!(n, stack; verbose)
                 else
