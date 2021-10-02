@@ -58,21 +58,22 @@ function retain(n::Int, lb::Int, v::Int, s::Int, i::Int, aᵢ₋₁::Int, aᵢ::
     retain(v, aᵢ) && retain(n, lb, i, aᵢ) && retain(s, aᵢ₋₁, aᵢ)
 end
 
-function stackchildren!(n::Int, stack::Vector{Vector{Int}}; verbose=false)
+function stackchildren!(n::T, stack::Vector{Vector{T}}; verbose=false) where T
     aᵢ = stack[end][end]
-    segment = Int[]
+    segment = T[]
     for i in 1:length(stack), j in i:length(stack)
-        aᵢ₊₁ = stack[i][end] + stack[j][end]
-        if aᵢ < aᵢ₊₁ ≤ n
-            push!(segment, aᵢ₊₁)
+        for aᵢ₊₁ in assemble(stack[i][end], stack[j][end])
+            if isbelow(aᵢ, aᵢ₊₁) && (isequal(aᵢ₊₁, n) || isbelow(aᵢ₊₁, n))
+                push!(segment, aᵢ₊₁)
+            end
         end
     end
     unique!(sort!(segment))
     push!(stack, segment)
 end
 
-function backup(stack::Vector{Vector{Int}}; verbose=false)
-    while length(stack) > 2
+function backup(N::Int, stack::Vector{Vector{T}}; verbose=false) where T
+    while length(stack) > N
         pop!(stack[end])
         if isempty(stack[end])
             pop!(stack)
@@ -80,22 +81,28 @@ function backup(stack::Vector{Vector{Int}}; verbose=false)
             break
         end
     end
-    length(stack) == 2
+    length(stack) ≤ N
 end
 
-function shortestchain(n::Int; verbose=false)
-    if n < one(n)
-        error("no chains defined for integers less than 1")
-    elseif isone(n)
+function shortestchain(n::T; verbose=false) where T
+    if isbasic(n)
         return 0, [1], 0
     end
 
-    stack = Vector{Int}[[1],[2]]
-    lb = lowerbound(n)
+    stack = Vector{T}[]
+    for x in basic(n)
+        push!(stack, [x])
+    end
+    N = length(stack)
+    lb = lowerbound(basicsize(n))
 
     loop = 1
     while true
-        vertical, slant = bounds(n, lb)
+        if length(stack) == N
+            stackchildren!(n, stack)
+        end
+
+        vertical, slant = bounds(basicsize(n), lb)
         verbose && @info "Outer Loop" lb vertical slant
         while true
             i = length(stack)
@@ -103,7 +110,7 @@ function shortestchain(n::Int; verbose=false)
             if i ≤ lb
                 aᵢ₋₁, aᵢ = stack[i-1][end], stack[i][end]
 
-                if retain(n, lb, vertical[i], slant[i+1], i, aᵢ₋₁, aᵢ)
+                if retain(basicsize(n), lb, vertical[i], slant[i+1], i, basicsize(aᵢ₋₁), basicsize(aᵢ))
                     verbose && @info "Retained" aᵢ
                     if aᵢ == n
                         return lb - 1, last.(stack), loop
@@ -111,14 +118,14 @@ function shortestchain(n::Int; verbose=false)
                     stackchildren!(n, stack; verbose)
                 else
                     verbose && @info "Did not retain" aᵢ loop
-                    if backup(stack; verbose)
+                    if backup(N, stack; verbose)
                         loop += 1
                         break
                     end
                 end
             else
                 verbose && @info "Reached lower bound" loop
-                if backup(stack; verbose)
+                if backup(N, stack; verbose)
                     loop += 1
                     break
                 end
@@ -128,3 +135,10 @@ function shortestchain(n::Int; verbose=false)
         lb += 1
     end
 end
+
+@inline isbelow(n::Int, m::Int) = isless(n, m)
+@inline isbasic(n::Int) = isone(n)
+@inline basic(n::Int) = [one(n)]
+@inline assemble(n::Int, m::Int) = [n + m]
+@inline numbasic(n::Int) = 1
+@inline basicsize(n::Int) = n
